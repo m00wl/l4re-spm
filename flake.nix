@@ -20,6 +20,7 @@
     devShell = pkgsArm64.mkShell {
       CROSS_COMPILE = "aarch64-unknown-linux-gnu-";
       nativeBuildInputs = [
+        # build
         pkgs.gcc
         pkgs.dialog
         pkgs.gawk
@@ -29,6 +30,9 @@
         pkgs.bison
         pkgs.dtc
         pkgs.ubootTools
+
+        # run
+        pkgs.qemu
       ];
     };
   }

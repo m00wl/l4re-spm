@@ -1,4 +1,4 @@
-#LICENSING INFORMATION
+# LICENSING INFORMATION
 
 This software includes third-party open source software:
 

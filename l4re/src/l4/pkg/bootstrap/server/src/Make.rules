@@ -331,7 +331,7 @@ ifneq ($(RAM_SIZE_MB),)
 CPPFLAGS	+= -DRAM_SIZE_MB=$(RAM_SIZE_MB)
 endif
 
-CXXFLAGS += -fno-rtti -fno-exceptions
+CXXFLAGS += -fno-rtti -fno-exceptions -Wno-format-security
 CXXFLAGS += $(call checkcxx,-fno-threadsafe-statics)
 
 ifneq ($(BUILD_MOD_CMD),)

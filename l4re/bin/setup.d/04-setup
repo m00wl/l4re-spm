@@ -1,4 +1,4 @@
-#! /bin/bash
+#! /usr/bin/env bash
 
 # This scripts sets up a snapshot on the target build machine.
 # TODO: Add question for compiler location :(

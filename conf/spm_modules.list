@@ -1,0 +1,18 @@
+modaddr 0x01100000
+
+default-kernel fiasco -serial_esc
+default-bootstrap bootstrap
+
+entry hello-spm
+roottask moe --init=rom/hello
+module l4re
+module hello
+
+entry hello-cfg
+kernel fiasco -serial_esc
+roottask moe rom/spm.cfg
+module l4re
+module ned
+module spm.cfg
+module hello
+

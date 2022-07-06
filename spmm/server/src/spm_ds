@@ -1,0 +1,22 @@
+#include <l4/re/env>
+#include <l4/re/error_helper>
+#include <l4/re/util/dataspace_svr>
+#include <l4/sys/cxx/ipc_epiface>
+
+using L4Re::chksys;
+
+class Spm_ds : public L4Re::Util::Dataspace_svr,
+               public L4::Epiface_t<Spm_ds, L4Re::Dataspace>
+{
+private:
+
+public:
+  Spm_ds(l4_addr_t mem_start,
+         l4_size_t mem_size,
+         L4Re::Dataspace::Flags mem_flags);
+
+  int map_hook(L4Re::Dataspace::Offset offs,
+               L4Re::Dataspace::Flags flags,
+               L4Re::Dataspace::Map_addr min,
+               L4Re::Dataspace::Map_addr max) override;
+};

@@ -1,0 +1,3 @@
+requires: stdlibs
+provides: spmm
+maintainer: 46034439+m00wl@users.noreply.github.com

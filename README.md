@@ -42,7 +42,7 @@
     ifneq ($(BUILD_MOD_CMD),)
    ```
 
-2. Follow the build instructions from the official [L4Re-website](https://l4re.org/built.html).
+2. Follow the build instructions from the official [L4Re-website](https://l4re.org/build.html).
 
    Hint: On NixOS, the prefix of the cross compilation toolchain slightly differs from the one assumed in the snapshot.
    The flake provided in this repository automatically sets the `CROSS_COMPILE` environment variable correctly.

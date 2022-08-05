@@ -5,7 +5,7 @@ TARGET	= $(PKGNAME)
 
 # list your .c or .cc files here
 SRC_C		=
-SRC_CC  = server.cc spm_ds.cc
+SRC_CC  = alloc.cc dataspace.cc
 
 # list requirements of your program here
 REQUIRES_LIBS   = stdlibs libstdc++

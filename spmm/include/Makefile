@@ -1,6 +1,8 @@
 PKGDIR	?= ..
 L4DIR	?= $(PKGDIR)/../l4re/src/l4
 
+PKGNAME = spmm
+
 # All header files found in this directory tree will be automatically
 # installed in a way that they can be included with
 # #include <l4/pkgname/yourfile.h> later.

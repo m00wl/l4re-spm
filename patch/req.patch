@@ -13,3 +13,20 @@ index bc324994..60c5089c 100644
    };
  
    // the default uart to use for serial console
+# Tweak uvmm to be more lazy.
+# We need to distinguish between read and write pagefaults here, otherwise same-
+# page merging cannot happen.
+diff --git a/l4re/src/l4/pkg/uvmm/server/src/ds_mmio_mapper.h b/l4re/src/l4/pkg/uvmm/server/src/ds_mmio_mapper.h
+index 3f4c0e85..a53a9aa5 100644
+--- a/l4re/src/l4/pkg/uvmm/server/src/ds_mmio_mapper.h
++++ b/l4re/src/l4/pkg/uvmm/server/src/ds_mmio_mapper.h
+@@ -121,7 +121,8 @@ private:
+     long res;
+     l4_addr_t ls = local_start();
+     // Make sure that the page is currently mapped.
+-    res = page_in(ls + offset, true);
++    // TODO: This is an Arm-specific hack. Make ISA-independent!
++    res = page_in(ls + offset, vcpu.pf_write());
+
+     if (res >= 0)
+       {

@@ -7,6 +7,8 @@
 #include <l4/re/util/dataspace_svr>
 #include <l4/sys/cxx/ipc_epiface>
 
+#include "alloc-fwd"
+
 namespace Spmm
 {
 
@@ -14,16 +16,27 @@ class Dataspace : public L4Re::Util::Dataspace_svr,
                   public L4::Epiface_t<Spmm::Dataspace, L4Re::Dataspace>
 {
 private:
-
+  L4::Cap<L4Re::Dataspace> _mem_cap;
 public:
+  friend Spmm::Allocator;
+
   Dataspace(l4_addr_t mem_start,
             l4_size_t mem_size,
-            L4Re::Dataspace::Flags mem_flags);
+            L4Re::Dataspace::Flags mem_flags,
+            L4::Cap<L4Re::Dataspace> mem_cap);
 
   int map_hook(L4Re::Dataspace::Offset offs,
                L4Re::Dataspace::Flags flags,
                L4Re::Dataspace::Map_addr min,
                L4Re::Dataspace::Map_addr max) override;
+
+  long map_region(L4Re::Dataspace::Offset offs,
+                  L4Re::Dataspace::Flags flags,
+                  L4Re::Dataspace::Map_addr min_addr,
+                  L4Re::Dataspace::Map_addr max_addr)
+  {
+    return _mem_cap->map_region(offs, flags, min_addr, max_addr);
+  }
 };
 
-}
+} //Spmm

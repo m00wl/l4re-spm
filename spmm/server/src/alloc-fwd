@@ -1,0 +1,5 @@
+// vim:set ft=cpp:
+
+#pragma once
+
+namespace Spmm { class Allocator; }

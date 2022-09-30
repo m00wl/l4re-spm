@@ -1,0 +1,51 @@
+// vim:set ft=cpp:
+
+#pragma once
+
+#include <l4/re/env>
+#include <l4/re/error_helper>
+#include <l4/re/util/br_manager>
+#include <l4/re/util/cap_alloc>
+#include <l4/re/util/object_registry>
+#include <l4/sys/cxx/ipc_epiface>
+#include <l4/sys/scheduler>
+#include <l4/util/util.h>
+#include <pthread-l4.h>
+
+#include <cstdio>
+#include <cstdlib>
+#include <list>
+
+#include "dataspace"
+
+extern L4Re::Util::Registry_server<L4Re::Util::Br_manager_hooks> server;
+
+namespace Spmm
+{
+
+class Allocator : public L4::Epiface_t<Allocator, L4::Factory>
+{
+private:
+  std::list<Spmm::Dataspace *> _ds_list;
+  L4::Cap<L4::Thread> _thread_cap;
+
+public:
+  Allocator();
+  ~Allocator();
+
+  int op_create(L4::Factory::Rights,
+                L4::Ipc::Cap<void> &res,
+                l4_umword_t type,
+                L4::Ipc::Varg_list<> &&args);
+  void test();
+
+  static void *
+  pthread_func(void *self)
+  {
+    Spmm::Allocator *alloc = static_cast<Spmm::Allocator *>(self);
+    alloc->test();
+    return nullptr;
+  }
+};
+
+} //Spmm

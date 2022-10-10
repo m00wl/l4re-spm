@@ -1,0 +1,47 @@
+// vim:set ft=cpp:
+
+#pragma once
+
+#include <l4/sys/types.h>
+
+namespace Spmm
+{
+
+class Component;
+
+class Core
+{
+public:
+  virtual ~Core() {};
+
+  // core:
+  virtual void merge(Component *caller) const = 0;
+  virtual void unmmerge(Component *caller) const = 0;
+
+  // allocator:
+  virtual l4_addr_t palloc(Component *caller) const = 0;
+  virtual void pfree(Component *caller, l4_addr_t p) const = 0;
+
+  // queue:
+  virtual void pinsert(Component *caller, l4_addr_t p) const = 0;
+  virtual void premove(Component *caller, l4_addr_t p) const = 0;
+  virtual l4_addr_t pget_next(Component *caller) const = 0;
+
+  // worker:
+  virtual void run(Component *caller) const = 0;
+  virtual void pinc_refcnt(Component *caller, l4_addr_t p) const = 0;
+  virtual void pdec_refcnt(Component *caller, l4_addr_t p) const = 0;
+};
+
+class Component
+{
+protected:
+  Core *core;
+  Component(Core *core = nullptr) : core(core) {}
+  virtual ~Component() {};
+
+public:
+  void set_core(Core *core) { this->core = core; }
+};
+
+} //Spmm

@@ -1,0 +1,30 @@
+// vim:set ft=cpp:
+
+#pragma once
+
+#include <l4/re/env>
+#include <l4/re/error_helper>
+#include <l4/re/util/cap_alloc>
+
+#include <cstdio>
+#include <list>
+
+#include "allocator"
+
+namespace Spmm
+{
+
+class SimpleL4ReAllocator : public L4ReAllocator
+{
+private:
+  std::list<Spmm::Dataspace *> _ds_list;
+public:
+  int op_create(L4::Factory::Rights,
+                L4::Ipc::Cap<void> &res,
+                l4_umword_t type,
+                L4::Ipc::Varg_list<> &&args) override;
+  l4_addr_t palloc(void) override;
+  void pfree(l4_addr_t p) override;
+};
+
+} //Spmm

@@ -1,0 +1,22 @@
+// vim:set ft=cpp:
+
+#pragma once
+
+#include <l4/sys/types.h>
+
+#include "mediator"
+
+namespace Spmm
+{
+
+class Queue : public Component
+{
+public:
+  virtual ~Queue() {};
+
+  virtual void pinsert(l4_addr_t p) = 0;
+  virtual void premove(l4_addr_t p) = 0;
+  virtual l4_addr_t pget_next(void) = 0;
+};
+
+} //Spmm

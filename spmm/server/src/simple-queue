@@ -1,0 +1,65 @@
+// vim:set ft=cpp:
+
+#pragma once
+
+#include <list>
+#include <mutex>
+
+#include "queue"
+
+namespace Spmm
+{
+
+typedef std::list<l4_addr_t> SimpleList;
+
+class SimpleQueue : public Queue
+{
+private:
+  SimpleList _l;
+  SimpleList::iterator _i;
+  std::mutex _m;
+public:
+  SimpleQueue() { _i = _l.begin(); }
+
+  void
+  pinsert(l4_addr_t p) override
+  {
+    std::lock_guard<std::mutex> const lock(_m);
+    _l.push_back(p);
+  }
+
+  void
+  premove(l4_addr_t p) override
+  {
+    std::lock_guard<std::mutex> const lock(_m);
+    for (SimpleList::iterator it = _l.begin(); it != _l.end(); it++)
+    {
+      if (*it == p)
+      {
+        if (it == _i)
+        {
+          _i++;
+          if (_i == _l.end())
+            _i = _l.begin();
+        }
+        _l.erase(it);
+        break;
+      }
+    }
+  }
+
+  l4_addr_t
+  pget_next(void) override
+  {
+    std::lock_guard<std::mutex> const lock(_m);
+    if (_l.empty())
+      return 0;
+    l4_addr_t next = *_i;
+    _i++;
+    if (_i == _l.end())
+      _i = _l.begin();
+    return next;
+  }
+};
+
+} //Spmm

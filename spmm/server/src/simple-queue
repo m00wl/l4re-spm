@@ -10,7 +10,7 @@
 namespace Spmm
 {
 
-typedef std::list<l4_addr_t> SimpleList;
+typedef std::list<page_t> SimpleList;
 
 class SimpleQueue : public Queue
 {
@@ -22,16 +22,17 @@ public:
   SimpleQueue() { _i = _l.begin(); }
 
   void
-  pinsert(l4_addr_t p) override
+  register_p(page_t p) override
   {
     std::lock_guard<std::mutex> const lock(_m);
     _l.push_back(p);
   }
 
   void
-  premove(l4_addr_t p) override
+  unregister_p(page_t p) override
   {
     std::lock_guard<std::mutex> const lock(_m);
+    // TODO: std::list::remove() ?
     for (SimpleList::iterator it = _l.begin(); it != _l.end(); it++)
     {
       if (*it == p)
@@ -48,13 +49,13 @@ public:
     }
   }
 
-  l4_addr_t
-  pget_next(void) override
+  page_t
+  get_next_p(void) override
   {
     std::lock_guard<std::mutex> const lock(_m);
     if (_l.empty())
       return 0;
-    l4_addr_t next = *_i;
+    page_t next = *_i;
     _i++;
     if (_i == _l.end())
       _i = _l.begin();

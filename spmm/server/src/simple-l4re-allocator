@@ -7,6 +7,7 @@
 #include <l4/re/util/cap_alloc>
 
 #include <cstdio>
+#include <cstdlib>
 #include <list>
 
 #include "allocator"
@@ -14,17 +15,23 @@
 namespace Spmm
 {
 
+typedef std::list<Spmm::Dataspace *> DsList;
+
 class SimpleL4ReAllocator : public L4ReAllocator
 {
 private:
-  std::list<Spmm::Dataspace *> _ds_list;
+  DsList _ds_list;
+  page_t alloc_p(void);
+  void free_p(page_t p);
 public:
   int op_create(L4::Factory::Rights,
                 L4::Ipc::Cap<void> &res,
                 l4_umword_t type,
                 L4::Ipc::Varg_list<> &&args) override;
-  l4_addr_t palloc(void) override;
-  void pfree(l4_addr_t p) override;
+  page_t alloc_imm_p(page_t p) override;
+  page_t alloc_vol_p(page_t p) override;
+  void free_imm_p(page_t p) override;
+  void free_vol_p(page_t p) override;
 };
 
 } //Spmm

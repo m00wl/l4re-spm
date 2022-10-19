@@ -1,0 +1,58 @@
+// vim:set ft=cpp:
+
+#pragma once
+
+#include <l4/sys/types.h>
+
+namespace Spmm
+{
+
+typedef l4_addr_t page_t;
+
+class Component;
+
+class Manager
+{
+public:
+  virtual ~Manager() {};
+
+  // TODO: move distinction btw immutable/volatile towards a flags parameter?
+  // manager:
+  virtual page_t merge_imm_p(Component *caller, page_t imm, page_t vol) = 0;
+  virtual page_t merge_vol_p(Component *caller, page_t vol1, page_t vol2) = 0;
+  virtual void unmerge_p(Component *caller, page_t p) = 0;
+  virtual bool is_merged_p(Component *caller, page_t p) const = 0;
+
+  // lock:
+  virtual void lock_p(Component *caller, page_t p) const = 0;
+  virtual void unlock_p(Component *caller, page_t p) const = 0;
+
+  // allocator:
+  virtual page_t alloc_imm_p(Component *caller, page_t hotspot) const = 0;
+  virtual page_t alloc_vol_p(Component *caller, page_t hotspot) const = 0;
+  virtual void free_imm_p(Component *caller, page_t p) const = 0;
+  virtual void free_vol_p(Component *caller, page_t p) const = 0;
+
+  // queue:
+  virtual void register_p(Component *caller, page_t p) const = 0;
+  virtual void unregister_p(Component *caller, page_t p) const = 0;
+  virtual page_t get_next_p(Component *caller) const = 0;
+
+  // worker:
+  virtual void run(Component *caller) const = 0;
+  virtual void inc_p_refcnt(Component *caller, page_t p) const = 0;
+  virtual void dec_p_refcnt(Component *caller, page_t p) const = 0;
+};
+
+class Component
+{
+protected:
+  Manager *manager;
+  Component(Manager *m = nullptr) : manager(m) {}
+  virtual ~Component() {};
+
+public:
+  void set_manager(Manager *m) { this->manager = m; }
+};
+
+} //Spmm

@@ -1,0 +1,286 @@
+// vim:set ft=cpp:
+
+#pragma once
+
+#include <l4/re/error_helper>
+#include <l4/re/util/br_manager>
+#include <l4/re/util/object_registry>
+#include <pthread-l4.h>
+
+#include <cassert>
+#include <cstdio>
+#include <cstring>
+#include <map>
+
+#include "allocator"
+#include "lock"
+#include "manager"
+#include "queue"
+#include "worker"
+
+using L4Re::chkcap;
+using L4Re::chksys;
+
+extern L4Re::Util::Registry_server<L4Re::Util::Br_manager_hooks> server;
+
+namespace Spmm
+{
+
+typedef std::map<page_t, page_t> mergemap_t;
+
+class SimpleManager : public Manager
+{
+private:
+  L4ReAllocator *_a;
+  Queue *_q;
+  Worker *_w;
+  Lock *_l;
+
+  mergemap_t _mm;
+
+  void _pt_start(void *(*start_routine) (void *arg), void *arg)
+  {
+    pthread_t t;
+    pthread_attr_t ta;
+    pthread_attr_init(&ta);
+    if (pthread_create(&t, &ta, start_routine, arg))
+    {
+      //printf("pthread_create failure\n");
+      while (1);
+    }
+    pthread_attr_destroy(&ta);
+  }
+
+  static void *_pt_start_w(void *arg)
+  {
+    static_cast<Spmm::Worker *>(arg)->run();
+    return nullptr;
+  }
+
+  static void *_pt_start_a(void *arg)
+  {
+    Spmm::L4ReAllocator *a = static_cast<Spmm::L4ReAllocator *>(arg);
+    chkcap(server.registry()->register_obj(a, "spmm_allocator"),
+           "Spmm allocator register");
+    server.loop();
+    server.registry()->unregister_obj(a);
+    return nullptr;
+  }
+
+public:
+  SimpleManager(L4ReAllocator *a, Queue *q, Worker *w, Lock *l)
+    : _a(a), _q(q), _w(w), _l(l)
+  {
+    this->_a->set_manager(this);
+    this->_q->set_manager(this);
+    this->_w->set_manager(this);
+    this->_l->set_manager(this);
+    //this->_pt_start(this->_pt_start_a, _a);
+    this->_pt_start(this->_pt_start_w, _w);
+  }
+
+  // manager:
+  page_t
+  merge_imm_p([[maybe_unused]] Component *caller,
+              page_t imm,
+              page_t vol) override
+  {
+    assert(imm != vol);
+    assert(imm == l4_trunc_page(imm));
+    assert(vol == l4_trunc_page(vol));
+
+    l4_fpage_t fp;
+
+    this->_l->lock_p(0);
+
+    // unmap vol
+    fp = l4_fpage(vol, L4_LOG2_PAGESIZE, L4_FPAGE_RWX);
+    chksys(L4Re::Env::env()->task()->unmap(fp, L4_FP_OTHER_SPACES),
+           "unmap vol");
+
+    // check if pages still match
+    if (memcmp(reinterpret_cast<void const *>(imm),
+               reinterpret_cast<void const *>(vol),
+               L4_PAGESIZE))
+    {
+      // no match -> release lock and abort
+      this->_l->unlock_p(0);
+      return 0;
+    }
+
+    // match -> free vol, map imm to vol, notify worker and queue
+    this->_a->free_vol_p(vol);
+    fp = l4_fpage(imm, L4_LOG2_PAGESIZE, L4_FPAGE_RO);
+    chksys(L4Re::Env::env()->task()->map(L4Re::This_task, fp, vol),
+           "map imm to vol");
+    this->_w->inc_p_refcnt(imm);
+    // TODO: check if race condition with get_next_p() ???
+    this->_q->unregister_p(vol);
+
+    // log the applied mapping
+    _mm.insert({vol, imm});
+
+    this->_l->unlock_p(0);
+
+    return imm;
+  }
+
+  page_t
+  merge_vol_p([[maybe_unused]] Component *caller,
+              page_t vol1,
+              page_t vol2) override
+  {
+    assert(vol1 != vol2);
+    assert(vol1 == l4_trunc_page(vol1));
+    assert(vol2 == l4_trunc_page(vol2));
+
+    l4_fpage_t fp;
+
+    this->_l->lock_p(0);
+
+    // unmap vol1 and vol2
+    fp = l4_fpage(l4_trunc_page(vol1), L4_LOG2_PAGESIZE, L4_FPAGE_RWX); 
+    chksys(L4Re::Env::env()->task()->unmap(fp, L4_FP_OTHER_SPACES),
+           "unmap vol1");
+    fp = l4_fpage(l4_trunc_page(vol2), L4_LOG2_PAGESIZE, L4_FPAGE_RWX); 
+    chksys(L4Re::Env::env()->task()->unmap(fp, L4_FP_OTHER_SPACES),
+           "unmap vol2");
+
+    // check if pages still match
+    if (memcmp(reinterpret_cast<void const *>(vol1),
+               reinterpret_cast<void const *>(vol2),
+               L4_PAGESIZE))
+    {
+      // no match -> release lock and abort
+      this->_l->unlock_p(0);
+      return 0;
+    }
+
+    // match -> alloc new page imm and copy contents, ...
+    page_t imm = this->_a->alloc_imm_p(0);
+    memcpy(reinterpret_cast<void *>(imm),
+           reinterpret_cast<void const *>(vol1),
+           L4_PAGESIZE);
+
+    fp = l4_fpage(l4_trunc_page(imm), L4_LOG2_PAGESIZE, L4_FPAGE_RO);
+
+    // ... free vol1, map imm to vol1, notify worker and queue, ...
+    this->_a->free_vol_p(vol1);
+    chksys(L4Re::Env::env()->task()->map(L4Re::This_task, fp, vol1),
+           "map imm to vol1");
+    this->_w->inc_p_refcnt(imm);
+    // TODO: check if race condition with get_next_p() ???
+    this->_q->unregister_p(vol1);
+
+    // log the applied mapping
+    _mm.insert({vol1, imm});
+
+    // ... free vol2, map imm to vol2, notify worker and queue
+    this->_a->free_vol_p(imm);
+    chksys(L4Re::Env::env()->task()->map(L4Re::This_task, fp, vol2),
+           "map imm to vol2");
+    this->_w->inc_p_refcnt(imm);
+    // TODO: check if race condition with get_next_p() ???
+    this->_q->unregister_p(vol2);
+
+    // log the applied mapping
+    _mm.insert({vol2, imm});
+
+    this->_l->unlock_p(0);
+
+    return imm;
+  }
+
+  void
+  unmerge_p([[maybe_unused]] Component *caller, page_t p) override
+  {
+
+  }
+
+  bool
+  is_merged_p([[maybe_unused]] Component *caller, page_t p) const override
+  {
+    this->_l->lock_p(0);
+    bool has_mapping = (_mm.find(p) != _mm.end());
+    this->_l->unlock_p(0);
+    return has_mapping;
+  }
+
+  // lock:
+  void
+  lock_p([[maybe_unused]] Component *caller, page_t p) const override
+  {
+    _l->lock_p(p);
+  }
+
+  void
+  unlock_p([[maybe_unused]] Component *caller, page_t p) const override
+  {
+    _l->unlock_p(p);
+  }
+
+  // allocator:
+  page_t
+  alloc_imm_p([[maybe_unused]] Component *caller, page_t p) const override
+  {
+    return _a->alloc_imm_p(p);
+  }
+
+  page_t
+  alloc_vol_p([[maybe_unused]] Component *caller, page_t p) const override
+  {
+    return _a->alloc_vol_p(p);
+  }
+
+  void
+  free_imm_p([[maybe_unused]] Component *caller, page_t p) const override
+  {
+    _a->free_imm_p(p);
+  }
+
+  void
+  free_vol_p([[maybe_unused]] Component *caller, page_t p) const override
+  {
+    _a->free_vol_p(p);
+  }
+
+  // queue:
+  void
+  register_p([[maybe_unused]] Component *caller, page_t p) const override
+  {
+    _q->register_p(p);
+  }
+
+  void
+  unregister_p([[maybe_unused]] Component *caller, page_t p) const override
+  {
+    _q->unregister_p(p);
+  }
+
+  page_t
+  get_next_p([[maybe_unused]] Component *caller) const override
+  {
+    return _q->get_next_p();
+  }
+
+  // worker:
+  void
+  run([[maybe_unused]] Component *caller) const override
+  {
+    _w->run();
+  }
+
+  void
+  inc_p_refcnt([[maybe_unused]] Component *caller, page_t p) const override
+  {
+    _w->inc_p_refcnt(p);
+  }
+
+  void
+  dec_p_refcnt([[maybe_unused]] Component *caller, page_t p) const override
+  {
+    _w->dec_p_refcnt(p);
+  }
+};
+
+} //Spmm

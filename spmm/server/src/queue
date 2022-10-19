@@ -2,9 +2,7 @@
 
 #pragma once
 
-#include <l4/sys/types.h>
-
-#include "mediator"
+#include "manager"
 
 namespace Spmm
 {
@@ -14,9 +12,9 @@ class Queue : public Component
 public:
   virtual ~Queue() {};
 
-  virtual void pinsert(l4_addr_t p) = 0;
-  virtual void premove(l4_addr_t p) = 0;
-  virtual l4_addr_t pget_next(void) = 0;
+  virtual void register_p(page_t p) = 0;
+  virtual void unregister_p(page_t p) = 0;
+  virtual page_t get_next_p(void) = 0;
 };
 
 } //Spmm

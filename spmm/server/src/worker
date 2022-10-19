@@ -2,9 +2,7 @@
 
 #pragma once
 
-#include <l4/sys/types.h>
-
-#include "mediator"
+#include "manager"
 
 namespace Spmm
 {
@@ -15,8 +13,8 @@ public:
   virtual ~Worker() {};
 
   virtual void run(void) = 0;
-  virtual void pinc_refcnt(l4_addr_t p) = 0;
-  virtual void pdec_refcnt(l4_addr_t p) = 0;
+  virtual void inc_p_refcnt(page_t p) = 0;
+  virtual void dec_p_refcnt(page_t p) = 0;
 };
 
 } //Spmm

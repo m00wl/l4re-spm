@@ -3,8 +3,9 @@
 #include <l4/re/util/object_registry>
 #include <l4/util/util.h>
 
-#include "simple-core"
 #include "simple-l4re-allocator"
+#include "simple-lock"
+#include "simple-manager"
 #include "simple-queue"
 #include "simple-worker"
 
@@ -16,13 +17,14 @@ int
 main()
 {
   Spmm::SimpleL4ReAllocator *a = new Spmm::SimpleL4ReAllocator();
-  Spmm::SimpleQueue *q = new Spmm::SimpleQueue();
-  Spmm::SimpleWorker *w = new Spmm::SimpleWorker();
-  Spmm::SimpleCore *c = new Spmm::SimpleCore(a, q, w);
+  Spmm::SimpleQueue *q         = new Spmm::SimpleQueue();
+  Spmm::SimpleWorker *w        = new Spmm::SimpleWorker(2 * 65536, 10000);
+  Spmm::SimpleLock *l          = new Spmm::SimpleLock();
+  Spmm::SimpleManager *m       = new Spmm::SimpleManager(a, q, w, l);
 
   //l4_sleep_forever();
 
-  // TODO: move into SimpleCore
+  // TODO: move into SimpleManager
   chkcap(server.registry()->register_obj(static_cast<Spmm::L4ReAllocator *>(a), "spmm_allocator"),
          "Spmm allocator register");
   server.loop();
@@ -31,6 +33,8 @@ main()
   delete a;
   delete q;
   delete w;
-  delete c;
+  delete l;
+  delete m;
+
   return 0;
 }

@@ -12,9 +12,11 @@ SimpleL4ReAllocator::op_create(L4::Factory::Rights,
                                l4_umword_t type,
                                L4::Ipc::Varg_list<> &&args)
 {
+  // check protocol
   if (type != L4Re::Dataspace::Protocol)
     return -L4_ENODEV;
 
+  // sanitize arguments
   L4::Ipc::Varg tags[3];
   for (auto &tag : tags) 
     tag = args.pop_front();
@@ -32,6 +34,7 @@ SimpleL4ReAllocator::op_create(L4::Factory::Rights,
   l4_size_t mem_align =
     tags[2].is_of_int() ? tags[2].value<l4_size_t>() : 0;
 
+  // allocate backing memory
   L4::Cap<L4Re::Dataspace> mem_cap =
     chkcap(L4Re::Util::cap_alloc.alloc<L4Re::Dataspace>(),
            "L4Re dataspace cap alloc");
@@ -39,6 +42,7 @@ SimpleL4ReAllocator::op_create(L4::Factory::Rights,
   chksys(L4Re::Env::env()->mem_alloc()->alloc(mem_size, mem_cap, 0, mem_align),
          "L4Re dataspace mem alloc");
 
+  // reserve region and map into address space
   l4_addr_t mem_addr = 0;
   L4Re::Rm::Flags rm_flags = L4Re::Rm::F::RWX
                              | L4Re::Rm::F::Reserved
@@ -50,12 +54,18 @@ SimpleL4ReAllocator::op_create(L4::Factory::Rights,
            mem_addr + mem_size),
          "L4Re dataspace mem map");
 
-  Spmm::Dataspace *ds = new Spmm::Dataspace(mem_addr, mem_size, mem_flags);
+  // prepare dataspace to hand out
+  Spmm::Dataspace *ds =
+    new Spmm::Dataspace(mem_addr, mem_size, mem_flags, this->manager);
   _ds_list.push_back(ds);
 
   chkcap(server.registry()->register_obj(ds),
          "Spmm dataspace register");
   res = L4::Ipc::make_cap_rw(ds->obj_cap());
+
+  // register pages for same-page merging
+  for (l4_addr_t i = mem_addr; i < mem_addr + mem_size; i += L4_PAGESIZE)
+    this->manager->register_p(this, i);
 
   printf("handing out dataspace @ addr: 0x%08lX with size: %ld\n", 
           mem_addr, mem_size);
@@ -63,16 +73,42 @@ SimpleL4ReAllocator::op_create(L4::Factory::Rights,
   return L4_EOK;
 }
 
-l4_addr_t
-SimpleL4ReAllocator::palloc(void)
+page_t
+SimpleL4ReAllocator::alloc_imm_p([[maybe_unused]] page_t p)
 {
-  return 0;
+  return alloc_p();
+}
+
+page_t
+SimpleL4ReAllocator::alloc_vol_p([[maybe_unused]] page_t p)
+{
+  return alloc_p();
 }
 
 void
-SimpleL4ReAllocator::pfree(l4_addr_t p)
+SimpleL4ReAllocator::free_imm_p(page_t p)
 {
-  printf("allocator pfree...\n");
+  free_p(p);
+}
+
+void
+SimpleL4ReAllocator::free_vol_p(page_t p)
+{
+  free_p(p);
+}
+
+page_t
+SimpleL4ReAllocator::alloc_p(void)
+{
+  /* simply malloc a single page */
+  return reinterpret_cast<l4_addr_t>(malloc(L4_PAGESIZE));
+}
+
+void
+SimpleL4ReAllocator::free_p([[maybe_unused]] page_t p)
+{
+  /* simply do nothing (o_0) */
+  return;
 }
 
 } //Spmm

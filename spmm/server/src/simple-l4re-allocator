@@ -7,8 +7,8 @@
 #include <l4/re/util/cap_alloc>
 
 #include <cstdio>
-#include <cstdlib>
 #include <list>
+#include <sys/mman.h>
 
 #include "allocator"
 
@@ -21,8 +21,8 @@ class SimpleL4ReAllocator : public L4ReAllocator
 {
 private:
   DsList _ds_list;
-  page_t alloc_p(void);
-  void free_p(page_t p);
+  page_t _alloc_p(void);
+  void _free_p(page_t p);
 public:
   int op_create(L4::Factory::Rights,
                 L4::Ipc::Cap<void> &res,

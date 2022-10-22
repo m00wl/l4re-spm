@@ -76,36 +76,42 @@ SimpleL4ReAllocator::op_create(L4::Factory::Rights,
 page_t
 SimpleL4ReAllocator::alloc_imm_p([[maybe_unused]] page_t p)
 {
-  return alloc_p();
+  return _alloc_p();
 }
 
 page_t
 SimpleL4ReAllocator::alloc_vol_p([[maybe_unused]] page_t p)
 {
-  return alloc_p();
+  return _alloc_p();
 }
 
 void
 SimpleL4ReAllocator::free_imm_p(page_t p)
 {
-  free_p(p);
+  _free_p(p);
 }
 
 void
 SimpleL4ReAllocator::free_vol_p(page_t p)
 {
-  free_p(p);
+  _free_p(p);
 }
 
 page_t
-SimpleL4ReAllocator::alloc_p(void)
+SimpleL4ReAllocator::_alloc_p(void)
 {
-  /* simply malloc a single page */
-  return reinterpret_cast<l4_addr_t>(malloc(L4_PAGESIZE));
+  /* allocate page(s) through mmap */
+  void *p = mmap(0,
+                 L4_PAGESIZE,
+                 PROT_READ | PROT_WRITE | PROT_EXEC,
+                 MAP_PRIVATE | MAP_ANONYMOUS,
+                 -1,
+                 0);
+  return reinterpret_cast<l4_addr_t>(p);
 }
 
 void
-SimpleL4ReAllocator::free_p([[maybe_unused]] page_t p)
+SimpleL4ReAllocator::_free_p([[maybe_unused]] page_t p)
 {
   /* simply do nothing (o_0) */
   return;

@@ -6,33 +6,35 @@
 
 #include <cstdio>
 #include <cstring>
-#include <list>
+#include <map>
 
 #include "worker"
 
 namespace Spmm
 {
 
-typedef std::list<page_t> SimpleList;
+typedef std::map<page_t, page_t> SimpleMap;
 
 class SimpleWorker : public Worker
 {
 private:
-  SimpleList _stable;
-  SimpleList _unstable;
+  SimpleMap _stable;
+  SimpleMap _unstable;
   l4_uint64_t _count;
   l4_uint64_t _sleep;
 
-  page_t search_list(page_t subject, SimpleList *list)
+  page_t find_match(page_t subject, SimpleMap *map)
   {
-    for (page_t &p : *list)
+    for (SimpleMap::value_type const &v : *map)
     {
-      printf("comparing %lX to %lX\n", subject, p);
+      page_t p = v.first;
+      if (subject == p)
+        continue;
       if (!(memcmp(reinterpret_cast<void const *>(subject),
                    reinterpret_cast<void const *>(p),
                    L4_PAGESIZE)))
       {
-        printf("found match!\n");
+        printf("found match: 0x%08lX equals 0x%08lX\n", subject, p);
         return p;
       }
     }
@@ -44,7 +46,7 @@ public:
 
   void run(void) override
   {
-    l4_sleep(30000);
+    l4_sleep(90000);
     printf("worker run...\n");
     _stable.clear();
     _unstable.clear();
@@ -61,28 +63,32 @@ public:
 
         if (i < 65536)
         {
-          _unstable.push_back(next);
+          _unstable.insert({next, 0});
           continue;
         }
 
-        page_t match = search_list(next, &(this->_stable));
+        page_t match = find_match(next, &(this->_stable));
         if (match)
           this->manager->merge_imm_p(this, match, next);
         else
         {
-          match = search_list(next, &(this->_unstable));
+          match = find_match(next, &(this->_unstable));
           if (match)
           {
             page_t p = this->manager->merge_vol_p(this, match, next);
 
             if (!p)
+            {
+              _unstable.insert({next, 0});
               continue;
-
-            _stable.push_back(p);
-            _unstable.remove(match);
+            }
+            else
+            {
+              _unstable.erase(match);
+            }
           }
           else
-            _unstable.push_back(next);
+            _unstable.insert({next, 0});
         }
       }
 
@@ -95,12 +101,19 @@ public:
 
   void inc_p_refcnt(page_t p) override
   {
-
+    if (_stable.find(p) == _stable.end())
+      _stable[p] = 1;
+    else
+      _stable[p]++;
   }
 
   void dec_p_refcnt(page_t p) override
   {
-
+    if (!(--_stable[p]))
+    {
+      _stable.erase(p);
+      this->manager->free_imm_p(this, p);
+    }
   }
 };
 

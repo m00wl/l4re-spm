@@ -120,6 +120,7 @@ public:
     // log the applied mapping
     _mm.insert({vol, imm});
 
+    printf("merging: 0x%08lX, old mapping: 0x%08lX --> new addr: 0x%08lX\n", vol, vol, imm);
     this->_l->unlock_p(0);
 
     return imm;
@@ -186,6 +187,8 @@ public:
     // log the applied mapping
     _mm.insert({vol2, imm});
 
+    printf("merging: 0x%08lX, old mapping: 0x%08lX --> new addr: 0x%08lX\n", vol1, vol1, imm);
+    printf("merging: 0x%08lX, old mapping: 0x%08lX --> new addr: 0x%08lX\n", vol2, vol2, imm);
     this->_l->unlock_p(0);
 
     return imm;
@@ -194,7 +197,34 @@ public:
   void
   unmerge_p([[maybe_unused]] Component *caller, page_t p) override
   {
+    assert(p == l4_trunc_page(p));
 
+    l4_fpage_t fp;
+
+    this->_l->lock_p(0);
+
+    // alloc new page vol and copy contents
+    page_t vol = this->_a->alloc_vol_p(p);
+    memcpy(reinterpret_cast<void *>(vol),
+           reinterpret_cast<void const *>(p),
+           L4_PAGESIZE);
+
+    // retrieve page imm that is mapped to p
+    page_t imm = _mm[p];
+
+    // map vol to p, notify worker and queue
+    fp = l4_fpage(l4_trunc_page(vol), L4_LOG2_PAGESIZE, L4_FPAGE_RWX);
+    chksys(L4Re::Env::env()->task()->map(L4Re::This_task, fp, p),
+           "map imm to vol1");
+    this->_w->dec_p_refcnt(imm);
+    // TODO: check if race condition with get_next_p() ???
+    this->_q->register_p(p);
+
+    // log the removed mapping
+    _mm.erase(p);
+
+    printf("unmerging: 0x%08lX, old mapping: 0x%08lX --> new addr: 0x%08lX\n", p, imm, vol);
+    this->_l->unlock_p(0);
   }
 
   bool

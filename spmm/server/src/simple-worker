@@ -46,7 +46,7 @@ public:
 
   void run(void) override
   {
-    l4_sleep(90000);
+    l4_sleep(60000);
     printf("worker run...\n");
     _stable.clear();
     _unstable.clear();

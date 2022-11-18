@@ -16,12 +16,11 @@
 #include "lock"
 #include "manager"
 #include "queue"
+#include "statistics"
 #include "worker"
 
 using L4Re::chkcap;
 using L4Re::chksys;
-
-extern L4Re::Util::Registry_server<L4Re::Util::Br_manager_hooks> server;
 
 namespace Spmm
 {
@@ -35,6 +34,7 @@ private:
   Queue *_q;
   Worker *_w;
   Lock *_l;
+  Statistics *_s;
 
   mergemap_t _mm;
 
@@ -45,7 +45,8 @@ private:
     pthread_attr_init(&ta);
     if (pthread_create(&t, &ta, start_routine, arg))
     {
-      //printf("pthread_create failure\n");
+      // TODO: handle pthread_create failure here
+      printf("pthread_create failure\n");
       while (1);
     }
     pthread_attr_destroy(&ta);
@@ -57,25 +58,15 @@ private:
     return nullptr;
   }
 
-  static void *_pt_start_a(void *arg)
-  {
-    Spmm::L4ReAllocator *a = static_cast<Spmm::L4ReAllocator *>(arg);
-    chkcap(server.registry()->register_obj(a, "spmm_allocator"),
-           "Spmm allocator register");
-    server.loop();
-    server.registry()->unregister_obj(a);
-    return nullptr;
-  }
-
 public:
-  SimpleManager(L4ReAllocator *a, Queue *q, Worker *w, Lock *l)
-    : _a(a), _q(q), _w(w), _l(l)
+  SimpleManager(L4ReAllocator *a, Queue *q, Worker *w, Lock *l, Statistics *s)
+    : _a(a), _q(q), _w(w), _l(l), _s(s)
   {
     this->_a->set_manager(this);
     this->_q->set_manager(this);
     this->_w->set_manager(this);
     this->_l->set_manager(this);
-    //this->_pt_start(this->_pt_start_a, _a);
+    this->_s->set_manager(this);
     this->_pt_start(this->_pt_start_w, _w);
   }
 
@@ -177,7 +168,7 @@ public:
     _mm.insert({vol1, imm});
 
     // ... free vol2, map imm to vol2, notify worker and queue
-    this->_a->free_vol_p(imm);
+    this->_a->free_vol_p(vol2);
     chksys(L4Re::Env::env()->task()->map(L4Re::This_task, fp, vol2),
            "map imm to vol2");
     this->_w->inc_p_refcnt(imm);
@@ -310,6 +301,55 @@ public:
   dec_p_refcnt([[maybe_unused]] Component *caller, page_t p) const override
   {
     _w->dec_p_refcnt(p);
+  }
+
+  // statistics:
+  void
+  inc_pages_shared([[maybe_unused]] Component *caller,
+                   unsigned int n) const override
+  {
+    _s->inc_pages_shared(n);
+  }
+
+  void
+  dec_pages_shared([[maybe_unused]] Component *caller,
+                   unsigned int n) const override
+  {
+    _s->dec_pages_shared(n);
+  }
+
+  void
+  inc_pages_sharing([[maybe_unused]] Component *caller,
+                   unsigned int n) const override
+  {
+    _s->inc_pages_sharing(n);
+  }
+
+  void
+  dec_pages_sharing([[maybe_unused]] Component *caller,
+                   unsigned int n) const override
+  {
+    _s->dec_pages_sharing(n);
+  }
+
+  void
+  inc_pages_unshared([[maybe_unused]] Component *caller,
+                   unsigned int n) const override
+  {
+    _s->inc_pages_unshared(n);
+  }
+
+  void
+  dec_pages_unshared([[maybe_unused]] Component *caller,
+                   unsigned int n) const override
+  {
+    _s->dec_pages_unshared(n);
+  }
+
+  void
+  inc_full_scans([[maybe_unused]] Component *caller) const override
+  {
+    _s->inc_full_scans();
   }
 };
 

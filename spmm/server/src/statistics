@@ -1,0 +1,27 @@
+// vim:set ft=cpp:
+
+#pragma once
+
+#include "manager"
+
+namespace Spmm
+{
+
+class Statistics : public Component
+{
+public:
+  virtual ~Statistics() {};
+
+  virtual void inc_pages_shared(unsigned int n) = 0;
+  virtual void dec_pages_shared(unsigned int n) = 0;
+
+  virtual void inc_pages_sharing(unsigned int n) = 0;
+  virtual void dec_pages_sharing(unsigned int n) = 0;
+
+  virtual void inc_pages_unshared(unsigned int n) = 0;
+  virtual void dec_pages_unshared(unsigned int n) = 0;
+
+  virtual void inc_full_scans(void) = 0;
+};
+
+} //Spmm

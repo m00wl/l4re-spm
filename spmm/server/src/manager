@@ -42,6 +42,15 @@ public:
   virtual void run(Component *caller) const = 0;
   virtual void inc_p_refcnt(Component *caller, page_t p) const = 0;
   virtual void dec_p_refcnt(Component *caller, page_t p) const = 0;
+
+  // statistics:
+  virtual void inc_pages_shared(Component *caller, unsigned int n) const = 0;
+  virtual void dec_pages_shared(Component *caller, unsigned int n) const = 0;
+  virtual void inc_pages_sharing(Component *caller, unsigned int n) const = 0;
+  virtual void dec_pages_sharing(Component *caller, unsigned int n) const = 0;
+  virtual void inc_pages_unshared(Component *caller, unsigned int n) const = 0;
+  virtual void dec_pages_unshared(Component *caller, unsigned int n) const = 0;
+  virtual void inc_full_scans(Component *caller) const = 0;
 };
 
 class Component

@@ -60,24 +60,28 @@ SimpleL4ReAllocator::op_create(L4::Factory::Rights,
 page_t
 SimpleL4ReAllocator::alloc_imm_p([[maybe_unused]] page_t p)
 {
+  this->manager->inc_pages_shared(this, 1);
   return _alloc(L4_PAGESIZE);
 }
 
 page_t
 SimpleL4ReAllocator::alloc_vol_p([[maybe_unused]] page_t p)
 {
+  this->manager->dec_pages_sharing(this, 1);
   return _alloc(L4_PAGESIZE);
 }
 
 void
 SimpleL4ReAllocator::free_imm_p(page_t p)
 {
+  this->manager->dec_pages_shared(this, 1);
   _free_p(p);
 }
 
 void
 SimpleL4ReAllocator::free_vol_p(page_t p)
 {
+  this->manager->inc_pages_sharing(this, 1);
   _free_p(p);
 }
 

@@ -26,6 +26,7 @@ public:
   {
     std::lock_guard<std::mutex> const lock(_m);
     _l.push_back(p);
+    this->manager->inc_pages_unshared(this, 1);
   }
 
   void
@@ -44,6 +45,7 @@ public:
             _i = _l.begin();
         }
         _l.erase(it);
+        this->manager->dec_pages_unshared(this, 1);
         break;
       }
     }
@@ -58,7 +60,11 @@ public:
     page_t next = *_i;
     _i++;
     if (_i == _l.end())
+    {
       _i = _l.begin();
+      // TODO: think about off-by-1-page error here
+      this->manager->inc_full_scans(this);
+    }
     return next;
   }
 };

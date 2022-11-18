@@ -1,0 +1,30 @@
+// vim:set ft=cpp:
+
+#pragma once
+
+#include <mutex>
+
+#include "statistics"
+
+namespace Spmm
+{
+
+class SimpleStatistics : public Statistics
+{
+private:
+  unsigned int _pages_shared   = 0;
+  unsigned int _pages_sharing  = 0;
+  /* unsigned int _pages_saved = _pages_sharing - _pages_shared; */
+  unsigned int _pages_unshared = 0;
+  unsigned int _full_scans     = 0;
+public:
+  void inc_pages_shared(unsigned int n) override { _pages_shared += n; }
+  void dec_pages_shared(unsigned int n) override { _pages_shared -= n; }
+  void inc_pages_sharing(unsigned int n) override { _pages_sharing += n; }
+  void dec_pages_sharing(unsigned int n) override { _pages_sharing -= n; }
+  void inc_pages_unshared(unsigned int n) override { _pages_unshared += n; }
+  void dec_pages_unshared(unsigned int n) override { _pages_unshared -= n; }
+  void inc_full_scans(void) override { _full_scans++; }
+};
+
+} //Spmm

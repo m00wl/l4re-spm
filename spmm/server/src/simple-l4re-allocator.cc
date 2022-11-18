@@ -31,28 +31,12 @@ SimpleL4ReAllocator::op_create(L4::Factory::Rights,
       static_cast<L4Re::Dataspace::Flags>(tags[1].value<unsigned long>())
       : L4Re::Dataspace::F::Ro;
 
-  l4_size_t mem_align =
-    tags[2].is_of_int() ? tags[2].value<l4_size_t>() : 0;
+  // mem_align is ignored in this allocator.
+  // defaults to page alignment (due to mmap)
 
   // allocate backing memory
-  L4::Cap<L4Re::Dataspace> mem_cap =
-    chkcap(L4Re::Util::cap_alloc.alloc<L4Re::Dataspace>(),
-           "L4Re dataspace cap alloc");
-
-  chksys(L4Re::Env::env()->mem_alloc()->alloc(mem_size, mem_cap, 0, mem_align),
-         "L4Re dataspace mem alloc");
-
-  // reserve region and map into address space
-  l4_addr_t mem_addr = 0;
-  L4Re::Rm::Flags rm_flags = L4Re::Rm::F::RWX
-                             | L4Re::Rm::F::Reserved
-                             | L4Re::Rm::F::Search_addr;
-  chksys(L4Re::Env::env()->rm()->reserve_area(&mem_addr, mem_size, rm_flags),
-         "L4Re region manager reserve area");
-
-  chksys(mem_cap->map_region(0, L4Re::Dataspace::F::RWX, mem_addr,
-           mem_addr + mem_size),
-         "L4Re dataspace mem map");
+  l4_addr_t mem_addr = _alloc(mem_size);
+  memset(reinterpret_cast<void *>(mem_addr), 0x0, mem_size);
 
   // prepare dataspace to hand out
   Spmm::Dataspace *ds =
@@ -76,13 +60,13 @@ SimpleL4ReAllocator::op_create(L4::Factory::Rights,
 page_t
 SimpleL4ReAllocator::alloc_imm_p([[maybe_unused]] page_t p)
 {
-  return _alloc_p();
+  return _alloc(L4_PAGESIZE);
 }
 
 page_t
 SimpleL4ReAllocator::alloc_vol_p([[maybe_unused]] page_t p)
 {
-  return _alloc_p();
+  return _alloc(L4_PAGESIZE);
 }
 
 void
@@ -98,23 +82,23 @@ SimpleL4ReAllocator::free_vol_p(page_t p)
 }
 
 page_t
-SimpleL4ReAllocator::_alloc_p(void)
+SimpleL4ReAllocator::_alloc(l4_size_t s)
 {
-  /* allocate page(s) through mmap */
+  /* allocate memory through mmap */
   void *p = mmap(0,
-                 L4_PAGESIZE,
+                 s,
                  PROT_READ | PROT_WRITE | PROT_EXEC,
-                 MAP_PRIVATE | MAP_ANONYMOUS,
+                 MAP_ANONYMOUS,
                  -1,
                  0);
   return reinterpret_cast<l4_addr_t>(p);
 }
 
 void
-SimpleL4ReAllocator::_free_p([[maybe_unused]] page_t p)
+SimpleL4ReAllocator::_free_p(page_t p)
 {
-  /* simply do nothing (o_0) */
-  return;
+  // TODO: check return value here
+  munmap(reinterpret_cast<void *>(p), L4_PAGESIZE);
 }
 
 } //Spmm

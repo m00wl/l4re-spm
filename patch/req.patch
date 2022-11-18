@@ -30,3 +30,19 @@ index 3f4c0e85..a53a9aa5 100644
 
      if (res >= 0)
        {
+# Increase heap size for the l4re_kernel.
+# We need to do this here so that mmap() has enough memory to provide to the
+# SimpleL4ReAllocator.
+diff --git a/l4re/src/l4/pkg/l4re-core/l4re_kernel/server/src/mem.cc b/l4re/src/l4/pkg/l4re-core/l4re_kernel/server/src/mem.cc
+index 05ac567a..ef377123 100644
+--- a/l4re/src/l4/pkg/l4re-core/l4re_kernel/server/src/mem.cc
++++ b/l4re/src/l4/pkg/l4re-core/l4re_kernel/server/src/mem.cc
+@@ -21,7 +21,7 @@
+ #include "globals.h"
+ 
+ enum {
+-  Heap_max = L4_PAGESIZE * 64,
++  Heap_max = L4_PAGESIZE * 256,
+ };
+ 
+ extern char __executable_start[];

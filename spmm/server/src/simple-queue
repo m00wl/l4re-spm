@@ -27,6 +27,8 @@ public:
     std::lock_guard<std::mutex> const lock(_m);
     _l.push_back(p);
     this->manager->inc_pages_unshared(this, 1);
+    if (_l.size() == 1)
+      _i = _l.begin();
   }
 
   void
@@ -45,10 +47,13 @@ public:
             _i = _l.begin();
         }
         _l.erase(it);
+        if (!_l.size())
+          _i = _l.begin();
         this->manager->dec_pages_unshared(this, 1);
-        break;
+        return;
       }
     }
+    //printf("fallthrough! you unregistered a page that was not previously registered\n");
   }
 
   page_t

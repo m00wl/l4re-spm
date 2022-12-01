@@ -22,10 +22,10 @@ Dataspace::map_hook(L4Re::Dataspace::Offset offs,
                     [[maybe_unused]] L4Re::Dataspace::Map_addr min,
                     [[maybe_unused]] L4Re::Dataspace::Map_addr max)
 {
-  //printf("mapping requested: off: 0x%08llX\tmin: 0x%08llX\tmax: 0x%08llX\tflags: 0x%lX\n", offs, min, max, flags.raw);
+  //printf("mapping requested: addr: 0x%08llX\tmin: 0x%08llX\tmax: 0x%08llX\tflags: 0x%lX\n", _ds_start + offs, min, max, flags.raw);
   if (flags & (L4Re::Dataspace::F::W | L4Re::Dataspace::F::X))
   {
-    page_t p = l4_trunc_page(offs);
+    page_t p = l4_trunc_page(_ds_start + offs);
     if (this->manager->is_merged_p(this, p))
       this->manager->unmerge_p(this, p);
   }

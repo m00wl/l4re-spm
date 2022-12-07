@@ -19,6 +19,8 @@
 #include "statistics"
 #include "worker"
 
+#include "simple-statistics"
+
 using L4Re::chkcap;
 using L4Re::chksys;
 
@@ -111,7 +113,8 @@ public:
     // log the applied mapping
     _mm.insert({vol, imm});
 
-    printf("merging: 0x%08lX, old mapping: 0x%08lX --> new addr: 0x%08lX\n", vol, vol, imm);
+    //printf("merging: 0x%08lX, old mapping: 0x%08lX --> new addr: 0x%08lX\n", vol, vol, imm);
+    //static_cast<SimpleStatistics *>(_s)->get_stats();
     this->_l->unlock_p(0);
 
     return imm;
@@ -178,8 +181,9 @@ public:
     // log the applied mapping
     _mm.insert({vol2, imm});
 
-    printf("merging: 0x%08lX, old mapping: 0x%08lX --> new addr: 0x%08lX\n", vol1, vol1, imm);
-    printf("merging: 0x%08lX, old mapping: 0x%08lX --> new addr: 0x%08lX\n", vol2, vol2, imm);
+    //printf("merging: 0x%08lX, old mapping: 0x%08lX --> new addr: 0x%08lX\n", vol1, vol1, imm);
+    //printf("merging: 0x%08lX, old mapping: 0x%08lX --> new addr: 0x%08lX\n", vol2, vol2, imm);
+    //static_cast<SimpleStatistics *>(_s)->get_stats();
     this->_l->unlock_p(0);
 
     return imm;
@@ -215,6 +219,7 @@ public:
     _mm.erase(p);
 
     printf("unmerging: 0x%08lX, old mapping: 0x%08lX --> new addr: 0x%08lX\n", p, imm, vol);
+    //static_cast<SimpleStatistics *>(_s)->get_stats();
     this->_l->unlock_p(0);
   }
 

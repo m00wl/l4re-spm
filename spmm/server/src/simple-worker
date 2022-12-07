@@ -8,6 +8,8 @@
 #include <cstring>
 #include <map>
 
+#include <time.h>
+
 #include "worker"
 
 namespace Spmm
@@ -34,7 +36,7 @@ private:
                    reinterpret_cast<void const *>(p),
                    L4_PAGESIZE)))
       {
-        printf("found match: 0x%08lX equals 0x%08lX\n", subject, p);
+        //printf("found match: 0x%08lX equals 0x%08lX\n", subject, p);
         return p;
       }
     }
@@ -47,9 +49,13 @@ public:
   void run(void) override
   {
     l4_sleep(60000);
-    printf("worker run...\n");
+    //l4_sleep(500000);
+    printf("worker run @");
+    time_t my_time = time(NULL);
+    printf("%s", ctime(&my_time));
     _stable.clear();
     _unstable.clear();
+
 
     while(1)
     {
@@ -58,8 +64,12 @@ public:
       for (unsigned int i = 0; i < _count; i++)
       {
         page_t next = this->manager->get_next_p(this);
+
         if (!next)
+        {
+          printf("No more pages left to scan.\n");
           break;
+        }
 
         if (i < 65536)
         {
@@ -90,6 +100,8 @@ public:
           else
             _unstable.insert({next, 0});
         }
+        if (i % 10000 == 0)
+          this->manager->inc_full_scans(this);
       }
 
       //sleep

@@ -26,6 +26,7 @@ Dataspace::map_hook(L4Re::Dataspace::Offset offs,
   if (flags & (L4Re::Dataspace::F::W | L4Re::Dataspace::F::X))
   {
     page_t p = l4_trunc_page(_ds_start + offs);
+    // TODO: race condition here. fix by moving into singular function in the manager
     if (this->manager->is_merged_p(this, p))
       this->manager->unmerge_p(this, p);
   }

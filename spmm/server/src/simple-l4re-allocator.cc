@@ -99,10 +99,7 @@ SimpleL4ReAllocator::_alloc(l4_size_t s)
 }
 
 void
-SimpleL4ReAllocator::_free_p(page_t p)
-{
-  // TODO: check return value here
-  munmap(reinterpret_cast<void *>(p), L4_PAGESIZE);
-}
+SimpleL4ReAllocator::_free_p([[maybe_unused]] page_t p)
+{} // simply do nothing... 0_o
 
 } //Spmm

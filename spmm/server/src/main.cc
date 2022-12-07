@@ -4,6 +4,7 @@
 #include <l4/util/util.h>
 
 #include "simple-l4re-allocator"
+#include "ds-l4re-allocator"
 #include "simple-lock"
 #include "simple-manager"
 #include "simple-queue"
@@ -17,7 +18,7 @@ L4Re::Util::Registry_server<L4Re::Util::Br_manager_hooks> server;
 int
 main()
 {
-  Spmm::SimpleL4ReAllocator *a = new Spmm::SimpleL4ReAllocator();
+  Spmm::DsL4ReAllocator *a  = new Spmm::DsL4ReAllocator();
   Spmm::SimpleQueue *q      = new Spmm::SimpleQueue();
   Spmm::SimpleWorker *w     = new Spmm::SimpleWorker(2 * 65536, 10000);
   Spmm::SimpleLock *l       = new Spmm::SimpleLock();

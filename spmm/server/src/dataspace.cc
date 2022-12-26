@@ -2,10 +2,8 @@
 
 namespace Spmm {
 
-Dataspace::Dataspace(l4_addr_t mem_start,
-                     l4_size_t mem_size,
-                     L4Re::Dataspace::Flags mem_flags,
-                     Spmm::Manager *manager)
+Dataspace::Dataspace(l4_addr_t mem_start, l4_size_t mem_size,
+                     L4Re::Dataspace::Flags mem_flags, Spmm::Manager *manager)
 {
   _ds_start    = mem_start;
   _ds_size     = mem_size;
@@ -16,8 +14,7 @@ Dataspace::Dataspace(l4_addr_t mem_start,
 }
 
 int
-Dataspace::map_hook(L4Re::Dataspace::Offset offs,
-                    L4Re::Dataspace::Flags flags,
+Dataspace::map_hook(L4Re::Dataspace::Offset offs, L4Re::Dataspace::Flags flags,
                     [[maybe_unused]] L4Re::Dataspace::Map_addr min,
                     [[maybe_unused]] L4Re::Dataspace::Map_addr max)
 {
@@ -25,11 +22,10 @@ Dataspace::map_hook(L4Re::Dataspace::Offset offs,
   L4Re::Dataspace::Flags w_or_x = L4Re::Dataspace::F::W | L4Re::Dataspace::F::X;
   if (flags & w_or_x)
   {
-    // notice that we pass *every* write page fault to unmerge_page(),
-    // since we have no way of knowing whether the faulty page is currently
-    // merged or not.
     page_t page = l4_trunc_page(_ds_start + offs);
-    manager->unmerge_page(this, page);
+    // unmerge page if currently merged.
+    if (manager->is_merged_page(this, page))
+      manager->unmerge_page(this, page);
   }
   return L4_EOK;
 }

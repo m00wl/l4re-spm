@@ -7,7 +7,7 @@ namespace Spmm
 
 /**
  * Interface for statistics about SPMM runtime and operational efficiency.
- * 
+ *
  * Statistics components provide means to measure the efficiency of SPMM
  * operations during runtime. To achieve this with minimal overhead, a
  * statistics component must implement 4 simple counters:

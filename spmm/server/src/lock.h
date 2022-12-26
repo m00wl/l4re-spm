@@ -23,7 +23,7 @@ public:
   virtual ~Lock() {};
 
   /**
-   * Claim exclusive access to a page. 
+   * Claim exclusive access to a page.
    *
    * @param page  The page to which exclusive access should be obtained.
    *

@@ -34,8 +34,8 @@ public:
   virtual void unregister_page(page_t page) = 0;
 
   /**
-   * Retrieve a page from the memory regions of this queue, according to an
-   * implementation-choosen strategy.
+   * Retrieve a page from one of the memory regions of this queue, according to
+   * an implementation-choosen prioritisation strategy.
    *
    * @returns     The page.
    */

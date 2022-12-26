@@ -18,16 +18,13 @@ class Dataspace : public Component,
                   public L4::Epiface_t<Spmm::Dataspace, L4Re::Dataspace>
 {
 public:
-  Dataspace(l4_addr_t mem_start,
-            l4_size_t mem_size,
-            L4Re::Dataspace::Flags mem_flags,
-            Spmm::Manager *manager);
+  Dataspace(l4_addr_t mem_start, l4_size_t mem_size,
+            L4Re::Dataspace::Flags mem_flags, Spmm::Manager *manager);
 
   /**
    * See L4Re::Util::Dataspace_svr::map_hook
    */
-  int map_hook(L4Re::Dataspace::Offset offs,
-               L4Re::Dataspace::Flags flags,
+  int map_hook(L4Re::Dataspace::Offset offs, L4Re::Dataspace::Flags flags,
                L4Re::Dataspace::Map_addr min,
                L4Re::Dataspace::Map_addr max) override;
 };

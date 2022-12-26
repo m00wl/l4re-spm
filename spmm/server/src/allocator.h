@@ -28,8 +28,25 @@ public:
   virtual ~Allocator() {};
 
   /**
+   * Flags for allocator operations.
+   */
+  struct F
+  {
+    enum Flags
+    {
+      /// Request/return a volatile page.
+      VOLATILE  = 0x0,
+      /// Request/return an immutable page.
+      IMMUTABLE = 0x1,
+    };
+
+    L4_TYPES_FLAGS_OPS_DEF(Flags);
+  };
+
+  /**
    * Allocate a page from this allocator.
    *
+   * @param flags Allocation flags, see Spmm::Allocator::F::Flags.
    * @param hint  An optional hint for the allocator which denotes the address
    *              of where the new page is going to be mapped to. This might
    *              enable allocation strategy-specific optimizations, but
@@ -38,14 +55,28 @@ public:
    *
    * @returns     The newly allocated page.
    */
-  virtual page_t allocate_page(l4_addr_t hint = 0) = 0;
+  virtual page_t allocate_page(AllocatorFlags flags, l4_addr_t hint = 0) = 0;
 
   /**
    * Return a page to this allocator.
    *
+   * @param flags Deallocation flags, see Spmm::Allocator::F::Flags.
    * @param page  The page that should be returned.
    */
-  virtual void free_page(page_t page) = 0;
+  virtual void free_page(AllocatorFlags flags, page_t page) = 0;
+};
+
+struct AllocatorFlags : L4::Types::Flags_ops_t<AllocatorFlags>
+{
+  unsigned long raw;
+
+  AllocatorFlags() = default;
+  constexpr AllocatorFlags(Allocator::F::Flags f) : raw(f) {}
+
+  constexpr bool vol() const
+  { return raw | Allocator::F::Flags::VOLATILE; }
+  constexpr bool imm() const
+  { return raw & Allocator::F::Flags::IMMUTABLE; }
 };
 
 /**
@@ -65,10 +96,8 @@ public:
    * Implementation of the factory create IPC call that clients in L4Re use to
    * request memory from the SPMM.
    */
-  virtual int op_create(L4::Factory::Rights,
-                        L4::Ipc::Cap<void> &res,
-                        l4_umword_t type,
-                        L4::Ipc::Varg_list<> &&args) = 0;
+  virtual int op_create(L4::Factory::Rights, L4::Ipc::Cap<void> &res,
+                        l4_umword_t type, L4::Ipc::Varg_list<> &&args) = 0;
 };
 
 } //Spmm

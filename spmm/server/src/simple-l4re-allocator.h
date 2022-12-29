@@ -109,7 +109,7 @@ public:
       manager->inc_pages_shared(this);
     else //if (flags.vol())
     {
-      manager->register_page(this, page);
+      manager->register_page(this, hint);
       manager->inc_pages_unshared(this);
     }
     return page;

@@ -23,9 +23,11 @@ Dataspace::map_hook(L4Re::Dataspace::Offset offs, L4Re::Dataspace::Flags flags,
   if (flags & w_or_x)
   {
     page_t page = l4_trunc_page(_ds_start + offs);
+    manager->lock_page(this, page);
     // unmerge page if currently merged.
     if (manager->is_merged_page(this, page))
       manager->unmerge_page(this, page);
+    manager->unlock_page(this, page);
   }
   return L4_EOK;
 }

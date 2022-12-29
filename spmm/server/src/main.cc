@@ -18,15 +18,13 @@ L4Re::Util::Registry_server<L4Re::Util::Br_manager_hooks> server;
 
 int main(void)
 {
-  printf("\n");
-
-  Spmm::SimpleL4ReAllocator *allocator  = new Spmm::SimpleL4ReAllocator();
-  //Spmm::DsL4ReAllocator     *allocator  = new Spmm::DsL4ReAllocator(65536);
+  //Spmm::SimpleL4ReAllocator *allocator  = new Spmm::SimpleL4ReAllocator();
+  Spmm::DsL4ReAllocator     *allocator  = new Spmm::DsL4ReAllocator(65536);
   Spmm::SimpleLock          *lock       = new Spmm::SimpleLock();
   Spmm::SimpleMemory        *memory     = new Spmm::SimpleMemory();
   Spmm::SimpleQueue         *queue      = new Spmm::SimpleQueue();
   Spmm::SimpleStatistics    *statistics = new Spmm::SimpleStatistics();
-  Spmm::SimpleWorker        *worker     = new Spmm::SimpleWorker(131072, 10000);
+  Spmm::SimpleWorker        *worker     = new Spmm::SimpleWorker(65536 / 4, 10000);
 
   Spmm::SimpleManager *manager;
   manager = new Spmm::SimpleManager(allocator, lock, memory, queue, statistics,

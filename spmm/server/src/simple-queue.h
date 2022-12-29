@@ -1,7 +1,6 @@
 #pragma once
 
 #include <list>
-#include <mutex>
 
 #include "queue.h"
 
@@ -16,9 +15,8 @@ class SimpleQueue : public Queue
 private:
   list_t _list;
   list_t::iterator _next_page;
-  std::mutex _mutex;
 
-  void increment_next_page(void)
+  void _increment_next_page(void)
   {
     // increment internal iterator.
     _next_page++;
@@ -35,8 +33,6 @@ public:
 
   void register_page(page_t page) override
   {
-    std::lock_guard<std::mutex> const lock(_mutex);
-
     // check if page is already in the list.
     //for (page_t &p : _list)
     //  if (page == p) return;
@@ -55,8 +51,6 @@ public:
 
   void unregister_page(page_t page) override
   {
-    std::lock_guard<std::mutex> const lock(_mutex);
-
     // empty list is never accessed.
     if (_list.empty())
       return;
@@ -69,7 +63,7 @@ public:
 
     // else check if we need to move internal iterator.
     if (*_next_page == page)
-      increment_next_page();
+      _increment_next_page();
 
     // remove page.
     _list.remove(page);
@@ -77,14 +71,12 @@ public:
 
   page_t get_next_page(void) override
   {
-    std::lock_guard<std::mutex> const lock(_mutex);
-
     // empty list is never accessed.
     if (_list.empty())
       return 0;
 
     page_t page = *_next_page;
-    increment_next_page();
+    _increment_next_page();
     return page;
   }
 };

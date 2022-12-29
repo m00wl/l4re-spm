@@ -1,5 +1,3 @@
-// vim:set ft=cpp:
-
 #pragma once
 
 #include <l4/re/error_helper>

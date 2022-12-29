@@ -3,6 +3,7 @@
 #include <l4/re/env>
 #include <l4/re/error_helper>
 #include <l4/re/util/cap_alloc>
+#include <l4/util/util.h>
 
 #include <cstdio>
 #include <list>
@@ -79,6 +80,8 @@ public:
     // convert allocation into pointer.
     l4_size_t free_page_idx = free_page - _free_pages.begin();
     l4_addr_t free_page_addr = _buffer_addr + (free_page_idx << L4_PAGESHIFT);
+
+    l4_touch_rw(reinterpret_cast<void const *>(free_page_addr), L4_PAGESIZE);
 
     return free_page_addr;
   };
@@ -160,7 +163,9 @@ private:
         continue; // with next client.
 
       // found correct client.
-      return client_info.vol_pool_start + mem_offset;
+      page_t page = client_info.vol_pool_start + mem_offset;
+      l4_touch_rw(reinterpret_cast<void const *>(page), L4_PAGESIZE);
+      return page;
     }
     // fallthrough.
     // in case the hint does not belong to a client of this allocator, return
@@ -298,7 +303,7 @@ public:
     else //if (flags.vol())
     {
       page = _retrieve_client_page(hint);
-      manager->register_page(this, page);
+      manager->register_page(this, hint);
       manager->inc_pages_unshared(this);
     }
 

@@ -14,7 +14,8 @@ class SimpleLock : public Lock
 private:
   // needs to be recursive so that the same thread can accquire the lock
   // multiple times.
-  std::recursive_mutex _m;
+  //std::recursive_mutex _m;
+  std::mutex _m;
 public:
   void lock_page([[maybe_unused]] page_t page) override { _m.lock(); }
   void unlock_page([[maybe_unused]] page_t page) override { _m.unlock(); }

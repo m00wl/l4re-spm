@@ -5,6 +5,7 @@
 
 #include <cstring>
 #include <list>
+#include <map>
 
 #include "worker.h"
 
@@ -15,55 +16,71 @@ namespace Spmm
 
 // simple worker class that continuously scans X pages and then sleeps for Y
 // seconds (both X and Y are configurable).
-// it performs only primitive bookkeeping of merged pages and merge candidates
-// in the form of two lists.
+// it performs only primitive bookkeeping of merged pages and merge candidates.
 class SimpleWorker : public Worker
 {
-  // this workers collection of already encountered volatile pages.
+  // primitive checksum of a page (sum of its content).
+  // note that this is not a hash and therefore ambiguous!
+  typedef l4_uint64_t checksum_t;
+
+  // this workers collection of already encountered volatile pages and their
+  // then checksums.
   // gets reset after every pass.
-  typedef std::list<page_t> unstable_list_t;
+  typedef std::map<page_t, checksum_t> volatile_pages_t;
 
   // this workers collection of merged immutable pages.
   // persists across passes.
-  typedef std::list<std::list<page_t>> stable_list_t;
+  typedef std::list<std::list<page_t>> immutable_pages_t;
 private:
-  unstable_list_t  _unstable_pages;
-  stable_list_t    _stable_pages;
-  l4_uint64_t     _pages_to_scan;
-  l4_uint64_t     _sleep_duration;
+  volatile_pages_t  _volatile_pages;
+  immutable_pages_t _immutable_pages;
+  l4_uint64_t       _pages_to_scan;
+  l4_uint64_t       _sleep_duration;
 
-  bool _pages_match(page_t page1, page_t page2)
+  checksum_t _calculate_checksum(page_t page)
+  {
+    // interpret page as array of l4_uint64_t.
+    l4_uint64_t const *array = reinterpret_cast<l4_uint64_t const *>(page);
+    l4_size_t array_size = L4_PAGESIZE / sizeof(l4_uint64_t);
+
+    // checksum is sum over all of them.
+    checksum_t result = 0;
+    for (l4_size_t i = 0; i < array_size; i++)
+      result += array[i];
+
+    return result;
+  }
+
+  bool _page_contents_match(page_t page1, page_t page2)
   {
     void const *ptr1 = reinterpret_cast<void const *>(page1);
     void const *ptr2 = reinterpret_cast<void const *>(page2);
-
-    manager->lock_page(this, page1);
-    manager->lock_page(this, page2);
-
-    int result = memcmp(ptr1, ptr2, L4_PAGESIZE);
-
-    manager->unlock_page(this, page2);
-    manager->unlock_page(this, page1);
-
-    return (result == 0);
+    bool match = (memcmp(ptr1, ptr2, L4_PAGESIZE) == 0);
+    return match;
   }
 
-  bool _try_stable_list(page_t page)
+  bool _try_immutable_pages(page_t page)
   {
     bool const successful = true;
-    for (stable_list_t::value_type &list : _stable_pages)
+    for (immutable_pages_t::value_type &list : _immutable_pages)
     {
+      // all pages in the list have the same content.
+      // pick first as representative.
       page_t candidate = list.front();
-      if (_pages_match(page, candidate))
+
+      //if (page == candidate)
+      //  continue;
+
+      if (_page_contents_match(page, candidate))
       {
         // match found, proceed to merge.
-        long error;
         MemoryFlags flags = Spmm::Memory::F::MERGE_IMMUTABLE;
-        error = manager->merge_pages(this, candidate, page, flags);
+        long error = manager->merge_pages(this, candidate, page, flags);
         if (error != L4_EOK)
           return !successful;
 
-        // merge was successful, update stable list.
+        // merge was successful, update page collections.
+        _volatile_pages.erase(page);
         list.push_back(page);
 
         return successful;
@@ -73,23 +90,27 @@ private:
     return !successful;
   }
 
-  bool _try_unstable_list(page_t page)
+  bool _try_volatile_pages(page_t page)
   {
     bool const successful = true;
-    for (unstable_list_t::value_type &candidate : _unstable_pages)
+    for (volatile_pages_t::value_type &pair : _volatile_pages)
     {
-      if (_pages_match(page, candidate))
+      page_t candidate = pair.first;
+      if (candidate == page)
+        continue;
+
+      if (_page_contents_match(page, candidate))
       {
         // match_found, proceed to merge.
-        long error;
         MemoryFlags flags = Spmm::Memory::F::MERGE_VOLATILE;
-        error = manager->merge_pages(this, candidate, page, flags);
+        long error = manager->merge_pages(this, candidate, page, flags);
         if (error != L4_EOK)
           return !successful;
 
-        // merge was successful, update stable and unstable lists.
-        _unstable_pages.remove(candidate);
-        _stable_pages.push_back({page, candidate});
+        // merge was successful, update immutable and volatile lists.
+        _volatile_pages.erase(candidate);
+        _volatile_pages.erase(page);
+        _immutable_pages.push_back({page, candidate});
 
         return successful;
       }
@@ -104,14 +125,14 @@ public:
 
   void run(void) override
   {
-    l4_sleep(120000);
-    _stable_pages.clear();
-    _unstable_pages.clear();
+    l4_sleep(100000);
+    _immutable_pages.clear();
+    _volatile_pages.clear();
 
     while(1)
     {
       //pass.
-      printf("worker scan...\n");
+      printf("worker scan\n");
       for (unsigned int i = 0; i < _pages_to_scan; i++)
       {
         // obtain next page from queue.
@@ -119,44 +140,62 @@ public:
 
         // sanitize.
         if (!page)
-        {
-          printf("No more pages left to scan.\n");
           break;
+
+        manager->lock_page(this, page);
+
+        // first try immutable pages.
+        bool successful;
+        successful = _try_immutable_pages(page);
+        if (successful)
+        {
+          manager->unlock_page(this, page);
+          continue; // with next page.
         }
 
-        // make sure not to operate on the same page.
-        _unstable_pages.remove(page);
+        // calculate checksum
+        checksum_t checksum = _calculate_checksum(page);
 
-        // first try stable list.
-        bool successful;
-        successful = _try_stable_list(page);
-        if (successful)
+        // primitive thrashing protection.
+        checksum_t old_checksum = _volatile_pages[page];
+        bool is_zero_page_or_new = (old_checksum == 0);
+        bool checksums_match = (old_checksum == checksum);
+        bool is_stable = is_zero_page_or_new || checksums_match;
+        if (!is_stable)
+        {
+          // update checksum.
+          _volatile_pages[page] = checksum;
+          manager->unlock_page(this, page);
           continue; // with next page.
+        }
 
-        // then try unstable list.
-        successful = _try_unstable_list(page);
+        // then try volatile pages.
+        successful = _try_volatile_pages(page);
         if (successful)
+        {
+          manager->unlock_page(this, page);
           continue; // with next page.
+        }
 
-        // else add page (back) to unstable list.
-        _unstable_pages.push_back(page);
-
+        // else remember page and then checksum for later.
+        _volatile_pages[page] = checksum;
+        manager->unlock_page(this, page);
         // and continue with next page.
       }
 
       //sleep.
-      printf("worker sleep...\n");
+      printf("worker sleep\n");
       l4_sleep(_sleep_duration);
-      _unstable_pages.clear();
+      _volatile_pages.clear();
     }
   }
 
   bool page_unmerge_notification(page_t page) override
   {
-    stable_list_t::value_type::iterator candidate;
+    immutable_pages_t::value_type::iterator candidate;
 
-    // iterate over every list in stable list.
-    for (stable_list_t::value_type &list : _stable_pages)
+    // iterate over every list in immutable pages.
+    for (immutable_pages_t::value_type &list : _immutable_pages)
     {
       // iterate over every page in list.
       candidate = list.begin();
@@ -180,11 +219,12 @@ public:
       // in this case, the underlying physical memory page can be freed.
       bool freeable = list.empty();
       if (freeable)
-        _stable_pages.remove(list);
+        _immutable_pages.remove(list);
       return freeable;
     }
     // fallthrough.
     // in case the page was not known to this worker, do not recommend to free.
+    //chksys(-L4_EINVAL, "page not known to this worker")
     return false;
   }
 };

@@ -3,6 +3,7 @@
 #include <l4/re/error_helper>
 #include <l4/util/util.h>
 
+#include <chrono>
 #include <cstring>
 #include <list>
 #include <map>
@@ -119,20 +120,34 @@ private:
     return !successful;
   }
 
+  unsigned long _get_current_time_in_ms(void)
+  {
+    typedef std::chrono::high_resolution_clock hrclock;
+    typedef std::chrono::time_point<std::chrono::high_resolution_clock> tp_t;
+    typedef std::chrono::milliseconds to_ms;
+    unsigned long ms;
+
+    tp_t now = hrclock::now();
+    ms = std::chrono::duration_cast<to_ms>(now.time_since_epoch()).count();
+
+    return ms;
+  }
+
 public:
   SimpleWorker(l4_uint64_t pages_to_scan, l4_uint64_t sleep_duration)
     : _pages_to_scan(pages_to_scan), _sleep_duration(sleep_duration) {}
 
   void run(void) override
   {
-    l4_sleep(100000);
+    printf("worker spawn @%lu\n", _get_current_time_in_ms());
+    l4_sleep(60000);
     _immutable_pages.clear();
     _volatile_pages.clear();
 
     while(1)
     {
       //pass.
-      printf("worker scan\n");
+      printf("worker scan @%lu\n", _get_current_time_in_ms());
       for (unsigned int i = 0; i < _pages_to_scan; i++)
       {
         // obtain next page from queue.
@@ -184,7 +199,7 @@ public:
       }
 
       //sleep.
-      printf("worker sleep\n");
+      printf("worker sleep @%lu\n", _get_current_time_in_ms());
       l4_sleep(_sleep_duration);
       _volatile_pages.clear();
     }

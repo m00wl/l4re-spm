@@ -24,7 +24,7 @@ int main(void)
   Spmm::SimpleMemory        *memory     = new Spmm::SimpleMemory();
   Spmm::SimpleQueue         *queue      = new Spmm::SimpleQueue();
   Spmm::SimpleStatistics    *statistics = new Spmm::SimpleStatistics();
-  Spmm::SimpleWorker        *worker     = new Spmm::SimpleWorker(65536 / 4, 10000);
+  Spmm::SimpleWorker        *worker     = new Spmm::SimpleWorker(65536, 10000);
 
   Spmm::SimpleManager *manager;
   manager = new Spmm::SimpleManager(allocator, lock, memory, queue, statistics,

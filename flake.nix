@@ -32,12 +32,15 @@
 
         # run
         pkgs.qemu
+
+        # rpi serial
+        pkgs.usbutils
+        pkgs.minicom
       ];
       shellHook = ''
         export L4RE_SPM_ROOT=$(pwd)
         alias m="make -C $L4RE_SPM_ROOT/l4re/obj/l4/arm64/";
         alias ms="make -C $L4RE_SPM_ROOT/spmm";
-        alias ml="make -C $L4RE_SPM_ROOT/librbt";
         alias mq="make -C $L4RE_SPM_ROOT/l4re/obj/l4/arm64/ qemu PLATFORM_TYPE=arm_virt";
       '';
     };

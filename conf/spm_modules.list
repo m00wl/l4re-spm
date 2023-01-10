@@ -8,47 +8,67 @@ module l4re
 module ned
 module uvmm
 module dtb/virt-arm_virt-64.dtb
-# TOASK: why is fname not picked up here?
-#module[fname=linux,nostrip]                    https://l4re.org/download/Linux-kernel/arm64/Image-5.16.1
 
 entry[arch=arm64] VM-basic
 moe vm-basic.cfg
 module-group core-virtualisation-components
-module[arch=arm64,fname=linux,nostrip]          https://l4re.org/download/Linux-kernel/arm64/Image-5.16.1
-module[arch=arm64,fname=ramdisk-arm64.rd]       https://os.inf.tu-dresden.de/~adam/dl/ramdisks/ramdisk-armv8-64.rd
+module[arch=arm64,fname=linux,nostrip]               https://l4re.org/download/Linux-kernel/arm64/Image-5.16.1
+module[arch=arm64,fname=ramdisk-arm64.rd]            https://os.inf.tu-dresden.de/~adam/dl/ramdisks/ramdisk-armv8-64.rd
 
 entry[arch=arm64] VM-basic-benchmark
 moe vm-basic-benchmark.cfg
 module-group core-virtualisation-components
-module[arch=arm64,fname=linux,nostrip]          https://l4re.org/download/Linux-kernel/arm64/Image-5.16.1
-module[arch=arm64,fname=ramdisk-arm64.rd,shell] printenv L4RE_SPM_RAMDISK
+module[arch=arm64,fname=linux,nostrip]               https://l4re.org/download/Linux-kernel/arm64/Image-5.16.1
+module[arch=arm64,fname=ramdisk-arm64.rd,uncompress] https://github.com/m00wl/l4re-spm/releases/download/v0.0.1/ramdisk-benchmark.rd.gz
 
 entry[arch=arm64] VM-basic-spm
 moe vm-basic-spm.cfg
 module-group core-virtualisation-components
 module spmm
-module[arch=arm64,fname=linux,nostrip]          https://l4re.org/download/Linux-kernel/arm64/Image-5.16.1
-module[arch=arm64,fname=ramdisk-arm64.rd]       https://os.inf.tu-dresden.de/~adam/dl/ramdisks/ramdisk-armv8-64.rd
+module[arch=arm64,fname=linux,nostrip]               https://l4re.org/download/Linux-kernel/arm64/Image-5.16.1
+module[arch=arm64,fname=ramdisk-arm64.rd]            https://os.inf.tu-dresden.de/~adam/dl/ramdisks/ramdisk-armv8-64.rd
 
 entry[arch=arm64] VM-basic-spm-benchmark
 moe vm-basic-spm-benchmark.cfg
 module-group core-virtualisation-components
 module spmm
-module[arch=arm64,fname=linux,nostrip]          https://l4re.org/download/Linux-kernel/arm64/Image-5.16.1
-module[arch=arm64,fname=ramdisk-arm64.rd,shell] printenv L4RE_SPM_RAMDISK
+module[arch=arm64,fname=linux,nostrip]               https://l4re.org/download/Linux-kernel/arm64/Image-5.16.1
+module[arch=arm64,fname=ramdisk-arm64.rd,uncompress] https://github.com/m00wl/l4re-spm/releases/download/v0.0.1/ramdisk-benchmark.rd.gz
 
 entry[arch=arm64] VM-multi
 moe vm-multi.cfg
 module-group core-virtualisation-components
 module cons
-module[arch=arm64,fname=linux,nostrip]          https://l4re.org/download/Linux-kernel/arm64/Image-5.16.1
-module[arch=arm64,fname=ramdisk-arm64.rd]       https://os.inf.tu-dresden.de/~adam/dl/ramdisks/ramdisk-armv8-64.rd
+module[arch=arm64,fname=linux,nostrip]               https://l4re.org/download/Linux-kernel/arm64/Image-5.16.1
+module[arch=arm64,fname=ramdisk-arm64.rd]            https://os.inf.tu-dresden.de/~adam/dl/ramdisks/ramdisk-armv8-64.rd
+
+entry[arch=arm64] VM-multi-benchmark
+moe vm-multi-benchmark.cfg
+module-group core-virtualisation-components
+module cons
+module[arch=arm64,fname=linux,nostrip]               https://l4re.org/download/Linux-kernel/arm64/Image-5.16.1
+module[arch=arm64,fname=ramdisk-arm64.rd,uncompress] https://github.com/m00wl/l4re-spm/releases/download/v0.0.1/ramdisk-benchmark.rd.gz
 
 entry[arch=arm64] VM-multi-spm
 moe vm-multi-spm.cfg
 module-group core-virtualisation-components
 module cons
 module spmm
-module[arch=arm64,fname=linux,nostrip]          https://l4re.org/download/Linux-kernel/arm64/Image-5.16.1
-module[arch=arm64,fname=ramdisk-arm64.rd]       https://os.inf.tu-dresden.de/~adam/dl/ramdisks/ramdisk-armv8-64.rd
+module[arch=arm64,fname=linux,nostrip]               https://l4re.org/download/Linux-kernel/arm64/Image-5.16.1
+module[arch=arm64,fname=ramdisk-arm64.rd]            https://os.inf.tu-dresden.de/~adam/dl/ramdisks/ramdisk-armv8-64.rd
+
+entry[arch=arm64] VM-multi-spm-benchmark
+moe vm-multi-spm-benchmark.cfg
+module-group core-virtualisation-components
+module cons
+module spmm
+module[arch=arm64,fname=linux,nostrip]               https://l4re.org/download/Linux-kernel/arm64/Image-5.16.1
+module[arch=arm64,fname=ramdisk-arm64.rd,uncompress] https://github.com/m00wl/l4re-spm/releases/download/v0.0.1/ramdisk-benchmark.rd.gz
+
+entry[arch=arm64] theoretical-limits
+moe theoretical-limits.cfg
+module l4re
+module ned
+module spmm
+module spmm-limits
 

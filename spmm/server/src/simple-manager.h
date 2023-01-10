@@ -13,6 +13,7 @@
 #include "memory.h"
 #include "queue.h"
 #include "statistics.h"
+#include "simple-statistics.h"
 #include "worker.h"
 
 using L4Re::chksys;
@@ -48,6 +49,12 @@ private:
     return nullptr;
   }
 
+  static void *_as_statistics_reporter(void *arg)
+  {
+    static_cast<Spmm::SimpleStatistics *>(arg)->report();
+    return nullptr;
+  }
+
 public:
   SimpleManager(L4ReAllocator *allocator, Lock *lock, Memory *memory,
                 Queue *queue, Statistics *statistics, Worker *worker)
@@ -64,6 +71,9 @@ public:
 
     // start running the worker.
     _start_thread(_as_worker, _worker);
+
+    // start the statistics reporter.
+    _start_thread(_as_statistics_reporter, _statistics);
   }
 
   // simple plugbox that connects every function to its respective component.

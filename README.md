@@ -1,6 +1,8 @@
 # L4Re same-page merging
 
-`<WIP>`
+`spmm` is the same-page merging monitor for the L4Re operating system.
+It provides an interface to supply memory to other L4Re components.
+The memory that it administers is periodically scanned and memory pages with matching contents are merged together.
 
 ## Structure
 

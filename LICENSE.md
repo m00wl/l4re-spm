@@ -1,4 +1,6 @@
-# LICENSING INFORMATION
+# LICENSE
+
+See [COPYING](https://github.com/m00wl/l4re-spm/blob/main/COPYING) for more information.
 
 This software includes third-party open source software:
 

@@ -38,10 +38,11 @@
         pkgs.minicom
       ];
       shellHook = ''
-        export L4RE_SPM_ROOT=$(pwd)
+        export L4RE_SPM_ROOT=$(git rev-parse --show-toplevel)
         alias m="make -C $L4RE_SPM_ROOT/l4re/obj/l4/arm64/";
         alias ms="make -C $L4RE_SPM_ROOT/spmm";
         alias mq="make -C $L4RE_SPM_ROOT/l4re/obj/l4/arm64/ qemu PLATFORM_TYPE=arm_virt";
+        alias mr="make -C $L4RE_SPM_ROOT/l4re/obj/l4/arm64/ elfimage PLATFORM_TYPE=rpi";
       '';
     };
   }

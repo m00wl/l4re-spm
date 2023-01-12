@@ -40,15 +40,15 @@ int main(void)
   printf("fabricated optimal scenario.\n");
 
   // turn optimal into suboptimal scenario.
-  //l4_addr_t it = addr + L4_PAGESIZE - 1;
-  //l4_uint8_t n = 0;
-  //while (it < addr + size)
-  //{
-  //  *reinterpret_cast<l4_uint8_t *>(it) = n;
-  //  n++;
-  //  it += L4_PAGESIZE;
-  //}
-  //printf("fabricated suboptimal scenario.\n");
+  l4_addr_t it = addr + L4_PAGESIZE - 2;
+  l4_uint16_t n = 0;
+  while (it < addr + size)
+  {
+    *reinterpret_cast<l4_uint16_t *>(it) = n;
+    n++;
+    it += L4_PAGESIZE;
+  }
+  printf("fabricated suboptimal scenario.\n");
 
   // prevent termination.
   printf("scanning can start now...\n");
